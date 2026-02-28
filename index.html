@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Pulse — Daily Workforce Intelligence</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #F5F3EE;
+      color: #1A1A1A;
+      font-family: Georgia, 'Times New Roman', serif;
+      min-height: 100vh;
+    }
+
+    #app { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    /* HEADER */
+    .header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-wrap: wrap; gap: 14px;
+      border-bottom: 2px solid #C8C0B4; padding-bottom: 20px; margin-bottom: 6px;
+    }
+    .logo { font-size: clamp(28px, 6vw, 46px); font-weight: 900; letter-spacing: -1px; line-height: 1; }
+    .logo span { color: #1A5FAB; }
+    .tagline { font-size: 11px; font-family: monospace; letter-spacing: 2px; text-transform: uppercase; color: #888; margin-top: 6px; }
+    .header-right { text-align: right; }
+    .date { font-size: 11px; font-family: monospace; color: #888; margin-bottom: 10px; }
+    .btn-row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    button {
+      border: none; border-radius: 8px; padding: 9px 16px;
+      font-size: 12px; font-family: monospace; font-weight: 700;
+      cursor: pointer; letter-spacing: 1px; transition: opacity 0.2s;
+    }
+    .btn-help { background: #fff; color: #1A1A1A; border: 1.5px solid #E4DFD8; }
+    .btn-refresh { background: #1A5FAB; color: #fff; }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+    .updated { font-size: 10px; font-family: monospace; color: #888; margin-top: 6px; }
+
+    /* STATUS MESSAGES */
+    .msg-loading {
+      background: #E8F0FB; border: 1px solid #90B8E8; border-radius: 10px;
+      padding: 12px 16px; color: #1A5FAB; font-size: 13px; font-family: monospace;
+      margin: 16px 0;
+    }
+    .msg-error {
+      background: #FDEDEB; border: 1.5px solid #F1A99A; border-radius: 10px;
+      padding: 14px; color: #C0392B; font-size: 13px; margin: 16px 0;
+    }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+    .stat-box {
+      background: #fff; border: 1.5px solid #E4DFD8; border-radius: 12px;
+      padding: 14px 10px; text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .stat-num { font-size: clamp(20px, 5vw, 30px); font-weight: 900; color: #1A5FAB; display: block; }
+    .stat-label { font-size: 11px; color: #888; margin-top: 4px; line-height: 1.4; }
+
+    /* SECTION DIVIDER */
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 28px 0 16px;
+    }
+    .divider span { font-size: 10px; font-family: monospace; letter-spacing: 3px; text-transform: uppercase; color: #999; white-space: nowrap; }
+    .divider hr { flex: 1; border: none; border-top: 1px solid #E4DFD8; }
+
+    /* SUMMARY */
+    .summary {
+      background: #fff; border: 1.5px solid #E4DFD8; border-radius: 12px;
+      padding: 22px; position: relative; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .summary::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #1A5FAB, #2E86DE, #48C9B0);
+    }
+    .summary p { font-size: 15px; line-height: 1.85; color: #1A1A1A; }
+
+    /* CARDS GRID */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+    .card {
+      background: #fff; border: 1.5px solid #E4DFD8; border-radius: 12px;
+      padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .card-title { font-size: 14px; font-weight: 700; color: #1A1A1A; line-height: 1.3; flex: 1; }
+    .card-insight { font-size: 12px; color: #4A4A4A; line-height: 1.65; margin-bottom: 10px; }
+    .mini-bar-bg { height: 5px; background: #EDE9E2; border-radius: 3px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 3px; }
+
+    /* BADGES */
+    .badge {
+      font-size: 10px; font-family: monospace; font-weight: 700;
+      padding: 3px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-high   { background: #FDEDEB; color: #C0392B; border: 1px solid #F1A99A; }
+    .badge-medium { background: #FEF6E4; color: #B7770D; border: 1px solid #F0C060; }
+    .badge-low    { background: #E8F5EE; color: #1E7E4A; border: 1px solid #8FD4A8; }
+    .badge-growth { background: #E8F0FB; color: #1A5FAB; border: 1px solid #90B8E8; }
+
+    /* INDUSTRY */
+    .industries { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .industry-box {
+      background: #fff; border: 1.5px solid #E4DFD8; border-radius: 12px;
+      padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .ind-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .ind-name { font-size: 13px; font-weight: 700; color: #1A1A1A; }
+    .ind-pct { font-size: 12px; font-family: monospace; font-weight: 700; }
+    .ind-bar-bg { height: 8px; background: #EDE9E2; border-radius: 4px; overflow: hidden; }
+    .ind-bar-fill { height: 100%; border-radius: 4px; }
+    .ind-label { font-size: 11px; color: #888; margin-top: 6px; }
+
+    /* NEWS */
+    .news-list { display: flex; flex-direction: column; gap: 10px; }
+    .news-item {
+      background: #fff; border: 1.5px solid #E4DFD8; border-radius: 12px;
+      padding: 16px; display: flex; gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .news-num { font-family: monospace; font-size: 11px; color: #bbb; padding-top: 2px; min-width: 20px; }
+    .news-headline { font-size: 14px; font-weight: 700; color: #1A1A1A; line-height: 1.4; margin-bottom: 5px; }
+    .news-context { font-size: 12px; color: #4A4A4A; line-height: 1.6; }
+    .news-tag {
+      font-size: 10px; font-family: monospace; font-weight: 700;
+      padding: 2px 7px; border-radius: 10px; margin-left: 8px;
+      vertical-align: middle; white-space: nowrap;
+    }
+    .tag-threat  { background: #FDEDEB; color: #C0392B; border: 1px solid #F1A99A; }
+    .tag-growth  { background: #E8F0FB; color: #1A5FAB; border: 1px solid #90B8E8; }
+    .tag-neutral { background: #F3F3F3; color: #888;    border: 1px solid #DDD; }
+
+    /* SPOTLIGHT */
+    .spotlight {
+      background: #fff; border: 1.5px solid #E4DFD8; border-radius: 14px;
+      overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 14px;
+    }
+    .spot-accent { height: 4px; }
+    .spot-body { padding: 18px 20px; }
+    .spot-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .spot-icon { font-size: 26px; }
+    .spot-title { font-size: 17px; font-weight: 800; color: #1A1A1A; }
+    .spot-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .spot-verdict {
+      font-size: 10px; font-family: monospace; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px; margin-left: auto;
+    }
+    .spot-roles {
+      background: #F5F3EE; border: 1px solid #E4DFD8; border-radius: 10px;
+      padding: 14px; margin-bottom: 14px;
+    }
+    .spot-roles-title { font-size: 10px; font-family: monospace; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 12px; }
+    .role-row { margin-bottom: 10px; }
+    .role-row:last-child { margin-bottom: 0; }
+    .role-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .role-name { font-size: 12px; font-weight: 600; color: #1A1A1A; }
+    .role-pct { font-size: 11px; font-family: monospace; font-weight: 700; }
+    .role-bar-bg { height: 6px; background: #E8E3DC; border-radius: 3px; overflow: hidden; }
+    .role-bar-fill { height: 100%; border-radius: 3px; }
+    .spot-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    @media (max-width: 480px) { .spot-cols { grid-template-columns: 1fr; } }
+    .spot-threats { background: #FDEDEB; border: 1px solid #F1A99A; border-radius: 10px; padding: 12px; }
+    .spot-opps   { background: #E8F5EE; border: 1px solid #8FD4A8; border-radius: 10px; padding: 12px; }
+    .spot-list-title { font-size: 10px; font-family: monospace; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+    .spot-list-item { font-size: 12px; color: #4A4A4A; line-height: 1.6; padding-bottom: 7px; margin-bottom: 7px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+    .spot-list-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+    .spot-takeaway {
+      background: #F5F3EE; border: 1px solid #E4DFD8; border-radius: 10px;
+      padding: 12px 14px; font-size: 13px; color: #4A4A4A; line-height: 1.7;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; z-index: 1000;
+    }
+    .modal {
+      background: #fff; border-radius: 16px; max-width: 480px; width: 100%;
+      padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 17px; font-weight: 800; color: #1A1A1A; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; padding: 0; }
+    .how-section { margin-bottom: 20px; }
+    .how-title { font-size: 14px; font-weight: 700; color: #1A1A1A; margin-bottom: 8px; }
+    .how-steps { padding-left: 20px; }
+    .how-steps li { font-size: 13px; color: #4A4A4A; line-height: 1.75; margin-bottom: 2px; }
+    .tip-box { background: #E8F0FB; border: 1px solid #90B8E8; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #1A5FAB; line-height: 1.6; margin-top: 20px; }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1px solid #E4DFD8; margin-top: 36px; padding-top: 16px;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      font-size: 10px; font-family: monospace; color: #bbb; letter-spacing: 1px;
+    }
+
+    .shimmer { background: #EDEAE4; border-radius: 8px; height: 70px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="logo">AI <span>Pulse</span></div>
+      <div class="tagline">Daily Workforce Intelligence</div>
+    </div>
+    <div class="header-right">
+      <div class="date" id="dateDisplay"></div>
+      <div class="btn-row">
+        <button class="btn-help" onclick="toggleModal(true)">📋 How to Launch</button>
+        <button class="btn-refresh" id="refreshBtn" onclick="loadBrief()">⟳ Refresh Brief</button>
+      </div>
+      <div class="updated" id="updatedTime"></div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div id="statusMsg" style="display:none"></div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-box"><span class="stat-num" id="s1">—</span><div class="stat-label">Jobs at risk globally</div></div>
+    <div class="stat-box"><span class="stat-num" id="s2">—</span><div class="stat-label">New AI roles emerging</div></div>
+    <div class="stat-box"><span class="stat-num" id="s3">—</span><div class="stat-label">Industries disrupted</div></div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="divider"><span>Today's Overview</span><hr></div>
+  <div class="summary"><p id="summaryText"><span class="shimmer" style="display:block"></span></p></div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" style="display:none">
+
+    <div class="divider"><span>Jobs Under Pressure</span><hr></div>
+    <div class="cards" id="jobsAtRisk"></div>
+
+    <div class="divider"><span>Growth Opportunities</span><hr></div>
+    <div class="cards" id="jobsGrowth"></div>
+
+    <div class="divider"><span>Industry Disruption Index</span><hr></div>
+    <div class="industries" id="industries"></div>
+
+    <div class="divider"><span>Key Developments</span><hr></div>
+    <div class="news-list" id="news"></div>
+
+    <div class="divider"><span>Spotlight — Sales Professionals</span><hr></div>
+    <div id="salesSpotlight"></div>
+
+    <div class="divider"><span>Spotlight — Financial Advisors</span><hr></div>
+    <div id="advisorSpotlight"></div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>AI PULSE © 2026</span>
+    <span>POWERED BY CLAUDE AI</span>
+    <span id="footerTime"></span>
+  </div>
+</div>
+
+<!-- HOW TO LAUNCH MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="toggleModal(false)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <span class="modal-title">📋 How to Launch Daily</span>
+      <button class="modal-close" onclick="toggleModal(false)">✕</button>
+    </div>
+    <div class="how-section">
+      <div class="how-title">💻 PC or Mac</div>
+      <ol class="how-steps">
+        <li>Open <strong>tntechno.github.io/ai-pulse</strong> in your browser</li>
+        <li>Press <strong>Ctrl+D</strong> (PC) or <strong>Cmd+D</strong> (Mac) to bookmark it</li>
+        <li>Each morning, click the bookmark and tap <strong>Refresh Brief</strong></li>
+      </ol>
+    </div>
+    <div class="how-section">
+      <div class="how-title">🤖 Pixel / Android</div>
+      <ol class="how-steps">
+        <li>Open <strong>tntechno.github.io/ai-pulse</strong> in Chrome</li>
+        <li>Tap the <strong>⋮ menu → "Add to Home screen"</strong></li>
+        <li>An app icon appears — tap it each morning, then tap <strong>Refresh Brief</strong></li>
+      </ol>
+    </div>
+    <div class="how-section">
+      <div class="how-title">🍎 iPhone</div>
+      <ol class="how-steps">
+        <li>Open <strong>tntechno.github.io/ai-pulse</strong> in Safari</li>
+        <li>Tap the <strong>Share button → "Add to Home Screen"</strong></li>
+        <li>Tap the icon each morning, then tap <strong>Refresh Brief</strong></li>
+      </ol>
+    </div>
+    <div class="tip-box">💡 <strong>Tip:</strong> Tap "Refresh Brief" every morning for a fresh AI-generated analysis of that day's job market developments.</div>
+  </div>
+</div>
+
+<script>
+  // ── Set date ──────────────────────────────────────────────────
+  const today = new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  document.getElementById("dateDisplay").textContent = today;
+
+  // ── Modal ─────────────────────────────────────────────────────
+  function toggleModal(show) {
+    document.getElementById("modal").style.display = show ? "flex" : "none";
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function showStatus(type, msg) {
+    const el = document.getElementById("statusMsg");
+    el.className = type === "loading" ? "msg-loading" : "msg-error";
+    el.textContent = (type === "loading" ? "⏳ " : "⚠ ") + msg;
+    el.style.display = "block";
+  }
+  function hideStatus() { document.getElementById("statusMsg").style.display = "none"; }
+
+  function badgeClass(risk) {
+    return { HIGH:"badge-high", MEDIUM:"badge-medium", LOW:"badge-low", GROWTH:"badge-growth" }[risk] || "badge-medium";
+  }
+  function badgeLabel(risk) {
+    return { HIGH:"HIGH RISK", MEDIUM:"MED RISK", LOW:"STABLE", GROWTH:"↑ GROWTH" }[risk] || "MED RISK";
+  }
+  function riskBar(risk) {
+    const map = { HIGH:["#C0392B",85], MEDIUM:["#B7770D",52], LOW:["#1E7E4A",18], GROWTH:["#1A5FAB",80] };
+    return map[risk] || map.MEDIUM;
+  }
+  function indColor(pct) { return pct > 70 ? "#C0392B" : pct > 40 ? "#B7770D" : "#1E7E4A"; }
+
+  // ── Render functions ──────────────────────────────────────────
+  function renderCards(jobs, containerId) {
+    document.getElementById(containerId).innerHTML = jobs.map(j => {
+      const [barColor, barPct] = riskBar(j.risk);
+      return `<div class="card">
+        <div class="card-head">
+          <span class="card-title">${j.title}</span>
+          <span class="badge ${badgeClass(j.risk)}">${badgeLabel(j.risk)}</span>
+        </div>
+        <p class="card-insight">${j.insight}</p>
+        <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${barPct}%;background:${barColor}"></div></div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderIndustries(industries) {
+    document.getElementById("industries").innerHTML = industries.map(ind => {
+      const c = indColor(ind.pct);
+      return `<div class="industry-box">
+        <div class="ind-head">
+          <span class="ind-name">${ind.name}</span>
+          <span class="ind-pct" style="color:${c}">${ind.pct}%</span>
+        </div>
+        <div class="ind-bar-bg"><div class="ind-bar-fill" style="width:${ind.pct}%;background:${c}"></div></div>
+        <div class="ind-label">${ind.label}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderNews(news) {
+    document.getElementById("news").innerHTML = news.map((item, i) => {
+      const tagClass = item.tag === "THREAT" ? "tag-threat" : item.tag === "GROWTH" ? "tag-growth" : "tag-neutral";
+      return `<div class="news-item">
+        <span class="news-num">#${i+1}</span>
+        <div>
+          <div class="news-headline">${item.headline}<span class="news-tag ${tagClass}">${item.tag}</span></div>
+          <div class="news-context">${item.context}</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderSpotlight(data, containerId, icon, accentGradient) {
+    if (!data) return;
+    const isHigh = data.verdict === "HIGH RISK";
+    const vStyle = isHigh
+      ? 'background:#FDEDEB;color:#C0392B;border:1px solid #F1A99A'
+      : 'background:#FEF6E4;color:#B7770D;border:1px solid #F0C060';
+
+    const rolesHtml = (data.roles || []).map(r => {
+      const bc = r.pct > 65 ? "#C0392B" : r.pct > 35 ? "#B7770D" : "#1E7E4A";
+      return `<div class="role-row">
+        <div class="role-head">
+          <span class="role-name">${r.name}</span>
+          <span class="role-pct" style="color:${bc}">${r.pct}%</span>
+        </div>
+        <div class="role-bar-bg"><div class="role-bar-fill" style="width:${r.pct}%;background:${bc}"></div></div>
+      </div>`;
+    }).join("");
+
+    const threatsHtml = (data.threats || []).map((t,i,arr) =>
+      `<div class="spot-list-item" style="${i===arr.length-1?'border-bottom:none;margin-bottom:0;padding-bottom:0':''}">🔴 ${t}</div>`
+    ).join("");
+
+    const oppsHtml = (data.opportunities || []).map((o,i,arr) =>
+      `<div class="spot-list-item" style="${i===arr.length-1?'border-bottom:none;margin-bottom:0;padding-bottom:0':''}">🟢 ${o}</div>`
+    ).join("");
+
+    document.getElementById(containerId).innerHTML = `
+      <div class="spotlight">
+        <div class="spot-accent" style="background:${accentGradient}"></div>
+        <div class="spot-body">
+          <div class="spot-header">
+            <span class="spot-icon">${icon}</span>
+            <div>
+              <div class="spot-title">${containerId === "salesSpotlight" ? "Sales Professionals" : "Financial Advisors"}</div>
+              <div class="spot-sub">AI Impact Analysis</div>
+            </div>
+            <span class="spot-verdict" style="${vStyle}">${data.verdict}</span>
+          </div>
+          <div class="spot-roles">
+            <div class="spot-roles-title">Role Disruption Risk</div>
+            ${rolesHtml}
+          </div>
+          <div class="spot-cols">
+            <div class="spot-threats">
+              <div class="spot-list-title" style="color:#C0392B">⚠ Threats</div>
+              ${threatsHtml}
+            </div>
+            <div class="spot-opps">
+              <div class="spot-list-title" style="color:#1E7E4A">✦ Opportunities</div>
+              ${oppsHtml}
+            </div>
+          </div>
+          <div class="spot-takeaway"><strong>Bottom line:</strong> ${data.takeaway}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Main fetch ────────────────────────────────────────────────
+  async function loadBrief() {
+    const btn = document.getElementById("refreshBtn");
+    btn.disabled = true;
+    showStatus("loading", "Connecting to AI — this takes about 15 seconds...");
+
+    const prompt = `You are an expert AI labor market analyst providing a daily workforce intelligence briefing for ${today}.
+
+IMPORTANT: Return ONLY a raw JSON object. No markdown. No backticks. No explanation. Start your response with { and end with }.
+
+{
+  "summary": "Write 3 specific sentences about AI workforce impact today",
+  "stats": { "disrupted": "800M+", "newRoles": "97M", "industries": "14" },
+  "jobsAtRisk": [
+    {"title": "Data Entry Clerk", "risk": "HIGH", "insight": "AI reads and processes forms faster and cheaper than humans"},
+    {"title": "Travel Agent", "risk": "HIGH", "insight": "AI booking platforms handle end-to-end trip planning autonomously"},
+    {"title": "Paralegal", "risk": "MEDIUM", "insight": "Document review automated but human judgment still required"},
+    {"title": "Radiologist", "risk": "MEDIUM", "insight": "AI reads scans with high accuracy but oversight roles remain"}
+  ],
+  "jobsGrowth": [
+    {"title": "AI Prompt Engineer", "risk": "GROWTH", "insight": "Demand surging as companies integrate AI into every workflow"},
+    {"title": "AI Trainer", "risk": "GROWTH", "insight": "Human feedback needed to improve AI model quality"},
+    {"title": "Robotics Technician", "risk": "GROWTH", "insight": "Physical AI systems need human installation and maintenance"},
+    {"title": "Mental Health Counselor", "risk": "LOW", "insight": "Human empathy and trust cannot be replicated by AI"}
+  ],
+  "industries": [
+    {"name": "Finance", "pct": 78, "label": "Algorithmic trading and robo-advisors surging"},
+    {"name": "Healthcare", "pct": 42, "label": "Diagnostics augmented, bedside care protected"},
+    {"name": "Legal", "pct": 70, "label": "Document review and research heavily automated"},
+    {"name": "Manufacturing", "pct": 81, "label": "Robotics replacing assembly and quality roles"},
+    {"name": "Sales", "pct": 58, "label": "Outreach automated; complex deals need humans"},
+    {"name": "Education", "pct": 36, "label": "AI tutors supplement but cannot replace teachers"},
+    {"name": "Transportation", "pct": 64, "label": "Autonomous vehicles advancing on freight routes"},
+    {"name": "Creative", "pct": 53, "label": "Generative AI disrupting entry-level creative work"}
+  ],
+  "news": [
+    {"headline": "Write a specific realistic AI workforce headline", "tag": "THREAT", "context": "2 sentences of specific context about the impact"},
+    {"headline": "Write a specific realistic AI growth headline", "tag": "GROWTH", "context": "2 sentences of specific context about the opportunity"},
+    {"headline": "Write a neutral AI industry development headline", "tag": "NEUTRAL", "context": "2 sentences of context"},
+    {"headline": "Write a specific AI displacement headline", "tag": "THREAT", "context": "2 sentences of context"},
+    {"headline": "Write a specific AI job creation headline", "tag": "GROWTH", "context": "2 sentences of context"}
+  ],
+  "salesSpotlight": {
+    "verdict": "CAUTION",
+    "takeaway": "Write 2 sentences about what AI means for sales professionals today and the one thing they must do to stay competitive.",
+    "roles": [
+      {"name": "SDR / Lead Gen Rep", "pct": 82},
+      {"name": "Inside Sales Rep", "pct": 68},
+      {"name": "Account Executive", "pct": 44},
+      {"name": "Sales Manager", "pct": 35}
+    ],
+    "threats": ["Specific AI tool or trend threatening sales jobs", "Second specific sales AI threat", "Third specific sales AI threat"],
+    "opportunities": ["Specific opportunity for sales professionals adapting to AI", "Second specific opportunity", "Third specific opportunity"]
+  },
+  "advisorSpotlight": {
+    "verdict": "HIGH RISK",
+    "takeaway": "Write 2 sentences about what AI means for financial advisors today and the one thing they must do to stay competitive.",
+    "roles": [
+      {"name": "Retail Financial Advisor", "pct": 71},
+      {"name": "Stock / Equity Analyst", "pct": 79},
+      {"name": "Wealth Manager (HNW)", "pct": 28},
+      {"name": "Robo-Advisor Oversight", "pct": 12}
+    ],
+    "threats": ["Specific AI tool or trend threatening financial advisors", "Second specific advisor AI threat", "Third specific advisor AI threat"],
+    "opportunities": ["Specific opportunity for financial advisors adapting to AI", "Second specific opportunity", "Third specific opportunity"]
+  }
+}`;
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5-20250929",
+          max_tokens: 2500,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      const raw = await res.json();
+      if (!res.ok) throw new Error("API error " + res.status);
+
+      const text = raw.content.map(b => b.text || "").join("").replace(/```json|```/g, "").trim();
+      const d = JSON.parse(text);
+
+      // Populate stats
+      document.getElementById("s1").textContent = d.stats?.disrupted ?? "800M+";
+      document.getElementById("s2").textContent = d.stats?.newRoles  ?? "97M";
+      document.getElementById("s3").textContent = d.stats?.industries ?? "14";
+
+      // Summary
+      document.getElementById("summaryText").textContent = d.summary ?? "";
+
+      // Cards, industry, news
+      renderCards(d.jobsAtRisk, "jobsAtRisk");
+      renderCards(d.jobsGrowth, "jobsGrowth");
+      renderIndustries(d.industries);
+      renderNews(d.news);
+      renderSpotlight(d.salesSpotlight,   "salesSpotlight",   "🤝", "linear-gradient(90deg,#F59E0B,#F97316)");
+      renderSpotlight(d.advisorSpotlight, "advisorSpotlight", "📊", "linear-gradient(90deg,#1A5FAB,#6366F1)");
+
+      document.getElementById("mainContent").style.display = "block";
+
+      const t = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+      document.getElementById("updatedTime").textContent = "Last updated " + t;
+      document.getElementById("footerTime").textContent  = "REFRESHED " + t;
+
+      hideStatus();
+    } catch(e) {
+      showStatus("error", "Could not load brief: " + e.message + " — Please tap Refresh to try again.");
+    }
+
+    btn.disabled = false;
+  }
+
+  // Auto-load on page open
+  loadBrief();
+</script>
+</body>
+</html>
